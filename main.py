@@ -1,6 +1,18 @@
 import cx_Oracle
+import chart_studio
 import chart_studio.plotly as py
+
 import plotly.graph_objs as go
+
+import re
+
+import chart_studio.dashboard_objs as dashboard
+
+def fileId_from_url(url):
+    raw_fileId = re.findall("~[A-z.]+/[0-9]+", url)[0][1: ]
+    return raw_fileId.replace('/', ':')
+
+chart_studio.tools.set_credentials_file(username='SulJis', api_key='ba0srCFl2O5OxT7ffZbW')
 connection = cx_Oracle.connect("SulJis", "password")
 
 cursor = connection.cursor()
@@ -75,7 +87,7 @@ genresLayout = go.Layout(
 )
 
 genresBar = go.Figure(data = genresData, layout=genresLayout)
-html = py.plot(genresBar, filename = "genres.html")
+genresTotalAnimes = py.plot(genresBar, filename = "genres.html")
 
 cursor.execute(query_ratings)
 queryRatingsResult = cursor.fetchall()
@@ -135,3 +147,34 @@ studiosAvgScores = py.plot(studiosBar, filename='studiosBar')
 
 cursor.close()
 connection.close()
+
+dboard = dashboard.Dashboard()
+studiosBarId= fileId_from_url(studiosAvgScores)
+ratingsPieId = fileId_from_url(ratingsPercents)
+genresBarId = fileId_from_url(genresTotalAnimes)
+
+box_1 = {
+    "type": "box",
+    "boxType": "plot",
+    "fileId": studiosBarId,
+    "title": "Genres and total number of animes"
+}
+
+box_2 = {
+    "type": "box",
+    "boxType": "plot",
+    "fileId": ratingsPieId,
+    "title": "Age ratings"
+}
+
+box_3 = {
+    'type': "box",
+    'boxType': "plot",
+    'fileId': genresBarId,
+    'title': "Studios and average score",
+}
+
+dboard.insert(box_1)
+dboard.insert(box_2, 'below', 1)
+dboard.insert(box_3, 'left', 2)
+py.dashboard_ops.upload(dboard, 'My Second Dashboard with Python')
